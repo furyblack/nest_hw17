@@ -3,6 +3,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { UsersRepository } from './infrastructure/users.repository';
 import { UsersController } from './api/users.controller';
 import { UsersService } from './application/users.service';
+import { AuthController } from './api/auth.controller';
+import { AuthService } from './application/auth.service';
+import { AuthRepository } from './infrastructure/auth.repository';
 
 @Module({
   imports: [
@@ -11,8 +14,8 @@ import { UsersService } from './application/users.service';
       signOptions: { expiresIn: '20s' }, // Базовые настройки
     }),
   ],
-  controllers: [UsersController],
-  providers: [UsersRepository, UsersService],
+  controllers: [UsersController, AuthController],
+  providers: [UsersRepository, UsersService, AuthService, AuthRepository],
 
   exports: [
     UsersRepository,
