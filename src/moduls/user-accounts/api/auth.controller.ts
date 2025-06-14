@@ -16,7 +16,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto): Promise<{ message: string }> {
     const user = await this.authService.validateUser(dto);
-    // пока возвращаем простое сообщение
+
     return { message: `User ${user.login} logged in successfully` };
   }
 }
