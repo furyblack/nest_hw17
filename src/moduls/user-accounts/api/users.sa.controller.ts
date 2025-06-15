@@ -3,8 +3,10 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from '../application/users.service';
@@ -31,9 +33,32 @@ export class UsersSaController {
   }
 
   @Get()
-  async getAllUsers() {
-    const users = await this.usersService.findAll();
-    return users.map((user) => this.mapUserToOutput(user));
+  async getAllUsers(
+    @Query('sortBy') sortBy: string = 'created_at',
+    @Query('sortDirection') sortDirection: 'asc' | 'desc' = 'desc',
+    @Query('pageNumber') pageNumber: number = 1,
+    @Query('pageSize') pageSize: number = 10,
+    @Query('searchLoginTerm') searchLoginTerm?: string,
+    @Query('searchEmailTerm') searchEmailTerm?: string,
+  ) {
+    const result = await this.usersService.findAll({
+      sortBy,
+      sortDirection,
+      pageNumber: Number(pageNumber),
+      pageSize: Number(pageSize),
+      searchLoginTerm,
+      searchEmailTerm,
+    });
+    console.log('RESULT BEFORE RETURN', JSON.stringify(result.items, null, 2));
+
+    // мапим перед возвратом
+    return {
+      pagesCount: Math.ceil(result.totalCount / pageSize),
+      page: pageNumber,
+      pageSize: pageSize,
+      totalCount: result.totalCount,
+      items: result.items.map((user) => this.mapUserToOutput(user)),
+    };
   }
 
   @Get(':id')
@@ -43,16 +68,18 @@ export class UsersSaController {
   }
 
   @Delete(':id')
+  @HttpCode(204)
   deleteUserById(@Param('id') id: string) {
     return this.usersService.deleteById(id);
   }
 
   private mapUserToOutput(user: any) {
+    console.log('MAP INPUT', JSON.stringify(user, null, 2));
     return {
       id: user.id,
       login: user.login,
       email: user.email,
-      createdAt: user.created_at, // преобразуем snake_case -> camelCase
+      createdAt: user.createdAt || user.created_at, // преобразуем snake_case -> camelCase
     };
   }
 
