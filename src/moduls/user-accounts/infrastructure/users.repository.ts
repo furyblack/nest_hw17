@@ -11,8 +11,8 @@ export class UsersRepository {
     passwordHash: string;
   }): Promise<any> {
     const query = `
-        INSERT INTO users (email, login, password_hash, deletion_status, updated_at)
-        VALUES ($1, $2, $3, 'active', now()) RETURNING id, email, login;
+        INSERT INTO users (email, login, password_hash, deletion_status, created_at, updated_at)
+        VALUES ($1, $2, $3, 'active', now(), now()) RETURNING id, email, login, created_at;
     `;
 
     const params = [userData.email, userData.login, userData.passwordHash];
