@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { UsersRepository } from './infrastructure/users.repository';
-import { UsersController } from './api/users.controller';
+import { UsersSaController } from './api/users.sa.controller';
 import { UsersService } from './application/users.service';
 import { AuthController } from './api/auth.controller';
 import { AuthService } from './application/auth.service';
@@ -14,7 +14,7 @@ import { AuthRepository } from './infrastructure/auth.repository';
       signOptions: { expiresIn: '20s' }, // Базовые настройки
     }),
   ],
-  controllers: [UsersController, AuthController],
+  controllers: [UsersSaController, AuthController],
   providers: [UsersRepository, UsersService, AuthService, AuthRepository],
 
   exports: [

@@ -1,15 +1,24 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { UsersService } from '../application/users.service';
+import { BasicAuthGuard } from '../guards/basic/basic-auth.guard';
 
-@Controller('users')
-export class UsersController {
+@UseGuards(BasicAuthGuard)
+@Controller('sa/users')
+export class UsersSaController {
   constructor(private usersService: UsersService) {}
 
   @Post()
-  createUser(
-    @Body() body: { email: string; login: string; passwordHash: string },
-  ) {
-    return this.usersService.createUser(body);
+  @Post()
+  createUser(@Body() body: { email: string; login: string; password: string }) {
+    return this.usersService.createUserWithPassword(body);
   }
 
   @Get()
