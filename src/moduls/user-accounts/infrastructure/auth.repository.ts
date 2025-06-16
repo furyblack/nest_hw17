@@ -5,21 +5,29 @@ import { DataSource } from 'typeorm';
 export class AuthRepository {
   constructor(private dataSource: DataSource) {}
 
-  async createUser(userData: {
+  async createUser(data: {
     login: string;
     email: string;
-    passwordHash: string;
-  }): Promise<{ id: string }> {
+    password_hash: string;
+    confirmationCode: string;
+    isEmailConfirmed: boolean;
+  }) {
     const result = await this.dataSource.query(
       `
-    INSERT INTO users (login, email, password_hash, deletion_status)
-    VALUES ($1, $2, $3, $4)
-    RETURNING id
-    `,
-      [userData.login, userData.email, userData.passwordHash, 'active'], // 'active' — пример
+          INSERT INTO users (login, email, password_hash, confirmation_code, is_email_confirmed, created_at)
+          VALUES ($1, $2, $3, $4, $5, NOW())
+              RETURNING id, login, email, confirmation_code, is_email_confirmed
+      `,
+      [
+        data.login,
+        data.email,
+        data.password_hash,
+        data.confirmationCode,
+        data.isEmailConfirmed,
+      ],
     );
 
-    return result[0]; // вернется объект с id
+    return result[0]; // возвращаем полный объект
   }
 
   async findUserByLoginOrEmail(loginOrEmail: string): Promise<any | null> {

@@ -6,6 +6,7 @@ import { UsersService } from './application/users.service';
 import { AuthController } from './api/auth.controller';
 import { AuthService } from './application/auth.service';
 import { AuthRepository } from './infrastructure/auth.repository';
+import { EmailService } from '../notifications/email.service';
 
 @Module({
   imports: [
@@ -15,7 +16,13 @@ import { AuthRepository } from './infrastructure/auth.repository';
     }),
   ],
   controllers: [UsersSaController, AuthController],
-  providers: [UsersRepository, UsersService, AuthService, AuthRepository],
+  providers: [
+    UsersRepository,
+    UsersService,
+    AuthService,
+    AuthRepository,
+    EmailService,
+  ],
 
   exports: [
     UsersRepository,
