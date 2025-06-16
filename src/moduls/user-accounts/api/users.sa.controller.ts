@@ -12,6 +12,8 @@ import {
 import { UsersService } from '../application/users.service';
 import { BasicAuthGuard } from '../guards/basic/basic-auth.guard';
 import { createHash } from 'crypto';
+import { CreateUserDto } from '../dto/create-input-dto';
+import { GetUsersQueryDto } from '../dto/getUserQueryDto';
 
 @UseGuards(BasicAuthGuard)
 @Controller('sa/users')
@@ -19,9 +21,7 @@ export class UsersSaController {
   constructor(private usersService: UsersService) {}
 
   @Post()
-  async createUser(
-    @Body() body: { email: string; login: string; password: string },
-  ) {
+  async createUser(@Body() body: CreateUserDto) {
     const passwordHash = this.hashPassword(body.password);
     const result = await this.usersService.createUser({
       email: body.email,
@@ -33,29 +33,13 @@ export class UsersSaController {
   }
 
   @Get()
-  async getAllUsers(
-    @Query('sortBy') sortBy: string = 'created_at',
-    @Query('sortDirection') sortDirection: 'asc' | 'desc' = 'desc',
-    @Query('pageNumber') pageNumber: number = 1,
-    @Query('pageSize') pageSize: number = 10,
-    @Query('searchLoginTerm') searchLoginTerm?: string,
-    @Query('searchEmailTerm') searchEmailTerm?: string,
-  ) {
-    const result = await this.usersService.findAll({
-      sortBy,
-      sortDirection,
-      pageNumber: Number(pageNumber),
-      pageSize: Number(pageSize),
-      searchLoginTerm,
-      searchEmailTerm,
-    });
-    console.log('RESULT BEFORE RETURN', JSON.stringify(result.items, null, 2));
+  async getAllUsers(@Query() query: GetUsersQueryDto) {
+    const result = await this.usersService.findAll(query);
 
-    // мапим перед возвратом
     return {
-      pagesCount: Math.ceil(result.totalCount / pageSize),
-      page: pageNumber,
-      pageSize: pageSize,
+      pagesCount: Math.ceil(result.totalCount / result.size),
+      page: result.page,
+      pageSize: result.size,
       totalCount: result.totalCount,
       items: result.items.map((user) => this.mapUserToOutput(user)),
     };
