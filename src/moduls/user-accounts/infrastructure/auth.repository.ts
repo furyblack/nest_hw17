@@ -16,7 +16,7 @@ export class AuthRepository {
       `
           INSERT INTO users (login, email, password_hash, confirmation_code, is_email_confirmed, created_at)
           VALUES ($1, $2, $3, $4, $5, NOW())
-              RETURNING id, login, email, confirmation_code, is_email_confirmed
+              RETURNING *
       `,
       [
         data.login,

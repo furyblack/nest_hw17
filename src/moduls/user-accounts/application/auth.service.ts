@@ -50,6 +50,7 @@ export class AuthService {
 
     // Хешируем пароль
     const password_hash = await bcrypt.hash(dto.password, 10);
+    console.log('REGISTER: Generated hash:', password_hash); // Логируем хеш
 
     // Генерация кода подтверждения
     const confirmationCode = uuidv4();
@@ -62,7 +63,7 @@ export class AuthService {
       confirmationCode,
       isEmailConfirmed: false,
     });
-
+    console.log('REGISTER: Created user:', user); // Логируем созданного пользователя
     // Отправка письма
     this.emailService
       .sendConfirmationEmail(user.email, confirmationCode)
@@ -77,38 +78,48 @@ export class AuthService {
     dto: LoginDto,
     res: Response,
   ): Promise<{ accessToken: string }> {
+    console.log('LOGIN: Starting login process for:', dto.loginOrEmail);
+
+    // 1. Находим пользователя
     const user = await this.authRepository.findUserByLoginOrEmail(
       dto.loginOrEmail,
     );
-    console.log('LOGIN: found user:', user);
+
     if (!user) {
-      console.log('LOGIN: user not found');
-      throw new UnauthorizedException();
+      console.log('LOGIN: ERROR - User not found');
+      throw new UnauthorizedException('Invalid credentials');
     }
-    console.log('LOGIN: passwordHash in db =', user.passwordHash);
+
+    // 2. Проверяем активность аккаунта
+    if (user.deletion_status === 'deleted') {
+      console.log('LOGIN: ERROR - Account deleted');
+      throw new UnauthorizedException('Account deleted');
+    }
+
+    // 3. Проверяем пароль
     const isMatch = await bcrypt.compare(dto.password, user.password_hash);
-    console.log('LOGIN: password match?', isMatch);
     if (!isMatch) {
-      console.log('LOGIN: password does not match');
-      throw new UnauthorizedException();
+      console.log('LOGIN: ERROR - Password does not match');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
+    // 4. Генерируем токены
     const payload = { userId: user.id };
-
     const accessToken = await this.jwtService.signAsync(payload, {
-      secret: 'ACCESS_SECRET', // вынеси в env
+      secret: 'ACCESS_SECRET',
       expiresIn: '10s',
     });
 
     const refreshToken = await this.jwtService.signAsync(payload, {
-      secret: 'REFRESH_SECRET', // вынеси в env
+      secret: 'REFRESH_SECRET',
       expiresIn: '20s',
     });
 
+    // 5. Устанавливаем куки
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: true, // на локалке можно временно отключить для тестов
-      maxAge: 20 * 1000, // 20 секунд
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 20 * 1000,
     });
 
     return { accessToken };
