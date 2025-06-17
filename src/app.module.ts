@@ -6,6 +6,7 @@ import { UserAccountsModule } from './moduls/user-accounts/user-accounts.module'
 import { TestingController } from './moduls/testing/testing.controller';
 import { TestingModule } from './moduls/testing/testing.module';
 import { NotificationsModule } from './moduls/notifications/notifications.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -22,6 +23,12 @@ import { NotificationsModule } from './moduls/notifications/notifications.module
     UserAccountsModule,
     TestingModule,
     NotificationsModule,
+    ThrottlerModule.forRoot([
+      {
+        ttl: 10000,
+        limit: 5,
+      },
+    ]),
   ],
   controllers: [AppController, TestingController],
   providers: [AppService],

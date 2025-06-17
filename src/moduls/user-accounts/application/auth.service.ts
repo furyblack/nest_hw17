@@ -97,4 +97,80 @@ export class AuthService {
 
     return { accessToken };
   }
+  async confirmRegistration(code: string): Promise<void> {
+    const user = await this.usersRepository.findByConfirmationCode(code);
+
+    if (!user) {
+      throw new BadRequestException({
+        errorsMessages: [
+          {
+            message: 'Invalid confirmation code',
+            field: 'code',
+          },
+        ],
+      });
+    }
+
+    if (user.is_email_confirmed) {
+      throw new BadRequestException({
+        errorsMessages: [
+          {
+            message: 'User already confirmed',
+            field: 'code',
+          },
+        ],
+      });
+    }
+
+    if (
+      user.confirmation_code_expiration &&
+      new Date(user.confirmation_code_expiration) < new Date()
+    ) {
+      throw new BadRequestException({
+        errorsMessages: [
+          {
+            message: 'Confirmation code expired',
+            field: 'code',
+          },
+        ],
+      });
+    }
+
+    await this.usersRepository.confirmUserEmail(user.id);
+  }
+  async emailResending(email: string): Promise<void> {
+    const user = await this.usersRepository.findByEmail(email);
+
+    if (!user) {
+      throw new BadRequestException({
+        errorsMessages: [
+          {
+            message: 'Such user not found',
+            field: 'email',
+          },
+        ],
+      });
+    }
+
+    if (user.is_email_confirmed) {
+      throw new BadRequestException({
+        errorsMessages: [
+          {
+            message: 'User already confirmed',
+            field: 'email',
+          },
+        ],
+      });
+    }
+
+    const newCode = randomUUID();
+    const expiration = new Date(Date.now() + 24 * 60 * 60 * 1000); // +24 часа
+
+    await this.usersRepository.updateConfirmationCode(
+      user.id,
+      newCode,
+      expiration,
+    );
+    await this.emailService.sendConfirmationEmail(user.email, newCode);
+  }
 }

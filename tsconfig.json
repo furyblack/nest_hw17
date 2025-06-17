@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
     "module": "commonjs",
+    "moduleResolution": "node",          // Добавлено (важно для поиска модулей)
+    "esModuleInterop": true,             // Добавлено (для совместимости с CommonJS)
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,

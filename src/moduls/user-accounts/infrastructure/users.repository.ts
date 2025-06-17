@@ -108,7 +108,47 @@ export class UsersRepository {
     return result[0] || null;
   }
 
+  async findByEmail(email: string): Promise<any> {
+    const result = await this.dataSource.query(
+      `SELECT * FROM users WHERE email =$1 LIMIT 1;`,
+      [email],
+    );
+    return result[0] || null;
+  }
+
   async deleteById(id: string): Promise<void> {
     await this.dataSource.query(`DELETE FROM users WHERE id = $1`, [id]);
+  }
+
+  async findByConfirmationCode(code: string): Promise<any> {
+    const result = await this.dataSource.query(
+      `SELECT * FROM users WHERE confirmation_code = $1 LIMIT 1;`,
+      [code],
+    );
+    return result[0] || null;
+  }
+  async confirmUserEmail(id: string): Promise<void> {
+    await this.dataSource.query(
+      `UPDATE users
+     SET is_email_confirmed = TRUE,
+         confirmation_code = NULL,
+         confirmation_code_expiration = NULL
+     WHERE id = $1;`,
+      [id],
+    );
+  }
+
+  async updateConfirmationCode(
+    id: string,
+    code: string,
+    expiration: Date,
+  ): Promise<void> {
+    await this.dataSource.query(
+      `UPDATE users
+      SET confirmation_code = $1,
+        confirmation_code_expiration = $2
+        WHERE id = $3; `,
+      [code, expiration, id],
+    );
   }
 }
