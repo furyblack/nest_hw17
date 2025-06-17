@@ -1,14 +1,23 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { UsersRepository } from '../infrastructure/users.repository';
 import { createHash } from 'crypto';
 import { DataSource } from 'typeorm';
 import { GetUsersQueryDto } from '../dto/getUserQueryDto';
+import { CreateUserInputDto } from '../dto/create-input-dto';
+import { EmailService } from '../../notifications/email.service';
+import * as bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class UsersService {
   constructor(
     private usersRepository: UsersRepository,
     private readonly dataSource: DataSource,
+    private readonly emailService: EmailService,
   ) {}
 
   async createUser(userData: {
@@ -120,5 +129,54 @@ export class UsersService {
       login: body.login,
       passwordHash,
     });
+  }
+
+  async registerUser(dto: CreateUserInputDto): Promise<void> {
+    // Проверка существования пользователя
+    const existingByLogin = await this.usersRepository.findByLoginOrEmail(
+      dto.login,
+    );
+    if (existingByLogin) {
+      throw new BadRequestException({
+        errorsMessages: [
+          {
+            message: 'User with the same login already exists',
+            field: 'login',
+          },
+        ],
+      });
+    }
+
+    const existingByEmail = await this.usersRepository.findByLoginOrEmail(
+      dto.email,
+    );
+    if (existingByEmail) {
+      throw new BadRequestException({
+        errorsMessages: [
+          {
+            message: 'User with the same email already exists',
+            field: 'email',
+          },
+        ],
+      });
+    }
+
+    // Хеширование пароля
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const confirmationCode = uuidv4();
+
+    // Создание пользователя
+    const user = await this.usersRepository.createUser({
+      login: dto.login,
+      email: dto.email,
+      password_hash: passwordHash,
+      confirmation_code: confirmationCode,
+      is_email_confirmed: false,
+    });
+
+    // Отправка email (асинхронно, без ожидания)
+    this.emailService
+      .sendConfirmationEmail(user.email, confirmationCode)
+      .catch((err) => console.error('Email sending error:', err));
   }
 }

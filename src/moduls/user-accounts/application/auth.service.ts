@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { EmailService } from '../../notifications/email.service';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -74,49 +75,56 @@ export class AuthService {
     // Возвращаем 204 (ничего не возвращаем)
   }
 
-  async loginUser(
-    dto: LoginDto,
-    res: Response,
-  ): Promise<{ accessToken: string }> {
-    console.log('LOGIN: Starting login process for:', dto.loginOrEmail);
+  private generateAccessToken(userId: string, login: string): string {
+    return this.jwtService.sign(
+      { userId, login },
+      { secret: 'ACCESS_SECRET', expiresIn: '10s' },
+    );
+  }
 
+  private generateRefreshToken(userId: string, deviceId: string): string {
+    return this.jwtService.sign(
+      { userId, deviceId },
+      { secret: 'REFRESH_SECRET', expiresIn: '20s' },
+    );
+  }
+
+  async login(
+    dto: LoginDto,
+    ip: string,
+    userAgent: string,
+    response: Response,
+  ): Promise<{ accessToken: string }> {
     // 1. Находим пользователя
-    const user = await this.authRepository.findUserByLoginOrEmail(
+    const user = await this.usersRepository.findByLoginOrEmail(
       dto.loginOrEmail,
     );
-
     if (!user) {
-      console.log('LOGIN: ERROR - User not found');
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // 2. Проверяем активность аккаунта
-    if (user.deletion_status === 'deleted') {
-      console.log('LOGIN: ERROR - Account deleted');
-      throw new UnauthorizedException('Account deleted');
-    }
-
-    // 3. Проверяем пароль
+    // 2. Проверяем пароль
     const isMatch = await bcrypt.compare(dto.password, user.password_hash);
     if (!isMatch) {
-      console.log('LOGIN: ERROR - Password does not match');
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // 4. Генерируем токены
-    const payload = { userId: user.id };
-    const accessToken = await this.jwtService.signAsync(payload, {
-      secret: 'ACCESS_SECRET',
-      expiresIn: '10s',
-    });
+    // 3. Генерируем токены
+    const deviceId = randomUUID();
+    const accessToken = this.generateAccessToken(user.id, user.login);
+    const refreshToken = this.generateRefreshToken(user.id, deviceId);
 
-    const refreshToken = await this.jwtService.signAsync(payload, {
-      secret: 'REFRESH_SECRET',
-      expiresIn: '20s',
-    });
+    // 4. Сохраняем сессию (если нужно)
+    // await this.sessionService.createSession({
+    //   ip,
+    //   title: userAgent,
+    //   deviceId,
+    //   userId: user.id,
+    //   lastActiveDate: new Date()
+    // });
 
     // 5. Устанавливаем куки
-    res.cookie('refreshToken', refreshToken, {
+    response.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 20 * 1000,

@@ -5,19 +5,36 @@ import { DataSource } from 'typeorm';
 export class UsersRepository {
   constructor(private dataSource: DataSource) {}
 
+  async findByLoginOrEmail(loginOrEmail: string): Promise<any> {
+    const result = await this.dataSource.query(
+      `SELECT * FROM users 
+       WHERE login = $1 OR email = $1 
+       AND deletion_status IS DISTINCT FROM 'deleted'`,
+      [loginOrEmail],
+    );
+    return result[0] || null;
+  }
+
   async createUser(userData: {
-    email: string;
     login: string;
-    passwordHash: string;
-  }): Promise<any> {
-    const query = `
-        INSERT INTO users (email, login, password_hash, deletion_status, created_at, updated_at)
-        VALUES ($1, $2, $3, 'active', now(), now()) RETURNING id, email, login, created_at;
-    `;
-
-    const params = [userData.email, userData.login, userData.passwordHash];
-
-    const result = await this.dataSource.query(query, params);
+    email: string;
+    password_hash: string;
+    confirmation_code: string;
+    is_email_confirmed: boolean;
+  }) {
+    const result = await this.dataSource.query(
+      `INSERT INTO users 
+       (login, email, password_hash, confirmation_code, is_email_confirmed, created_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())
+       RETURNING id, login, email, created_at`,
+      [
+        userData.login,
+        userData.email,
+        userData.password_hash,
+        userData.confirmation_code,
+        userData.is_email_confirmed,
+      ],
+    );
     return result[0];
   }
 
