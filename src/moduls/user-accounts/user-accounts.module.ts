@@ -9,6 +9,7 @@ import { AuthRepository } from './infrastructure/auth.repository';
 import { EmailService } from '../notifications/email.service';
 import { AuthQueryRepository } from './infrastructure/query/auth.query-repository';
 import { JwtStrategy } from './guards/bearer/jwt.strategy';
+import { SessionService } from './application/session.service';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { JwtStrategy } from './guards/bearer/jwt.strategy';
     AuthRepository,
     EmailService,
     JwtStrategy,
+    SessionService,
   ],
 
   exports: [

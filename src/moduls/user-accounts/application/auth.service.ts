@@ -12,6 +12,7 @@ import { EmailService } from '../../notifications/email.service';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import { randomUUID } from 'crypto';
+import { SessionService } from './session.service';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private readonly usersRepository: UsersRepository,
     private readonly emailService: EmailService,
     private readonly jwtService: JwtService,
+    private readonly sessionService: SessionService,
   ) {}
 
   async registerUser(dto: CreateUserInputDto): Promise<void> {
@@ -172,5 +174,62 @@ export class AuthService {
       expiration,
     );
     await this.emailService.sendConfirmationEmail(user.email, newCode);
+  }
+
+  async refreshToken(oldToken: string) {
+    let payload: any;
+
+    try {
+      payload = this.jwtService.verify(oldToken, {
+        secret: process.env.REFRESH_SECRET || 'REFRESH_SECRET',
+      });
+    } catch (e) {
+      console.error('Refresh token error:', e);
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    const session = await this.sessionService.findSessionByDeviceIdAndDate(
+      payload.deviceId,
+      payload.iat,
+    );
+
+    if (!session) {
+      throw new UnauthorizedException('Session not found or token reused');
+    }
+
+    const user = await this.usersRepository.findById(payload.userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const newAccessToken = this.generateAccessToken(user.id, user.login);
+    const newRefreshToken = this.generateRefreshToken(
+      user.id,
+      payload.deviceId,
+    );
+
+    const newPayload = this.jwtService.decode(newRefreshToken) as any;
+
+    await this.sessionService.updateSessionLastActiveDate(
+      payload.deviceId,
+      payload.iat,
+      newPayload.iat,
+    );
+
+    return { newAccessToken, newRefreshToken };
+  }
+
+  async logout(refreshToken: string): Promise<void> {
+    let payload: any;
+    try {
+      payload = this.jwtService.verify(refreshToken);
+    } catch {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    await this.sessionService.deleteSessionByDeviceIdAndDate(
+      payload.deviceId,
+      payload.iat,
+    );
   }
 }

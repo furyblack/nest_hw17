@@ -22,6 +22,8 @@ import { AuthQueryRepository } from '../infrastructure/query/auth.query-reposito
 import { JwtAuthGuard } from '../guards/bearer/jwt-auth.guard';
 import { ExtractUserFromRequest } from '../decarators/extract-user-from-request';
 import { UserContextDto } from '../dto/user.context.dto';
+import { Cookies } from '../decarators/cookies.decorator';
+import { RefreshTokenGuardPower } from '../guards/bearer/refreshToken-guard';
 
 @Controller('auth')
 export class AuthController {
@@ -69,5 +71,31 @@ export class AuthController {
   async me(@ExtractUserFromRequest() user: UserContextDto): Promise<MeViewDto> {
     const currentUser = await this.authQueryRepo.me(user.userId);
     return currentUser;
+  }
+  @Post('refresh-token')
+  @HttpCode(HttpStatus.OK)
+  async refreshToken(
+    @Cookies('refreshToken') refreshToken: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { newAccessToken, newRefreshToken } =
+      await this.authService.refreshToken(refreshToken);
+
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: true,
+      maxAge: 20 * 1000,
+    });
+
+    return { accessToken: newAccessToken };
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(RefreshTokenGuardPower)
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = req.cookies.refreshToken;
+    await this.authService.logout(refreshToken);
+    res.clearCookie('refreshToken');
   }
 }
