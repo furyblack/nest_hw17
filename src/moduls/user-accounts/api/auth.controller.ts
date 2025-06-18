@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -16,10 +17,18 @@ import {
   PasswordRecoveryDto,
 } from '../dto/confirmation-registration-dto';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { MeViewDto } from '../dto/currentUserDto';
+import { AuthQueryRepository } from '../infrastructure/query/auth.query-repository';
+import { JwtAuthGuard } from '../guards/bearer/jwt-auth.guard';
+import { ExtractUserFromRequest } from '../decarators/extract-user-from-request';
+import { UserContextDto } from '../dto/user.context.dto';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private authQueryRepo: AuthQueryRepository,
+  ) {}
 
   @Post('registration')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -53,5 +62,12 @@ export class AuthController {
   @UseGuards(ThrottlerGuard)
   async emailResending(@Body() dto: PasswordRecoveryDto): Promise<void> {
     await this.authService.emailResending(dto.email);
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async me(@ExtractUserFromRequest() user: UserContextDto): Promise<MeViewDto> {
+    const currentUser = await this.authQueryRepo.me(user.userId);
+    return currentUser;
   }
 }

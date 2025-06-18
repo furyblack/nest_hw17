@@ -7,6 +7,8 @@ import { AuthController } from './api/auth.controller';
 import { AuthService } from './application/auth.service';
 import { AuthRepository } from './infrastructure/auth.repository';
 import { EmailService } from '../notifications/email.service';
+import { AuthQueryRepository } from './infrastructure/query/auth.query-repository';
+import { JwtStrategy } from './guards/bearer/jwt.strategy';
 
 @Module({
   imports: [
@@ -19,9 +21,11 @@ import { EmailService } from '../notifications/email.service';
   providers: [
     UsersRepository,
     UsersService,
+    AuthQueryRepository,
     AuthService,
     AuthRepository,
     EmailService,
+    JwtStrategy,
   ],
 
   exports: [
