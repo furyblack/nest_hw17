@@ -15,7 +15,7 @@ import { SecurityDevicesController } from './api/security-devices.controller';
 @Module({
   imports: [
     JwtModule.register({
-      secret: 'secret-key', // TODO return process.env.JWT_SECRET ||
+      secret: 'REFRESH_SECRET', // TODO return process.env.JWT_SECRET ||
       signOptions: { expiresIn: '20s' }, // Базовые настройки
     }),
   ],

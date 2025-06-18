@@ -34,12 +34,14 @@ export class AuthController {
 
   @Post('registration')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(ThrottlerGuard)
   async registration(@Body() dto: CreateUserDto): Promise<void> {
     await this.authService.registerUser(dto);
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
   async login(
     @Body() dto: LoginDto,
     @Req() request: Request,
