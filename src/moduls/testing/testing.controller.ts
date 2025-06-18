@@ -12,7 +12,7 @@ export class TestingController {
   async deleteAll() {
     await this.dataSource.transaction(async (manager) => {
       // Очищаем таблицы (порядок важен из-за связей FK)
-      // await manager.query(`DELETE FROM sessions`);
+      await manager.query(`DELETE FROM sessions`);
       // await manager.query(`DELETE FROM posts`);
       // await manager.query(`DELETE FROM blogs`);
       await manager.query(`DELETE FROM users`);

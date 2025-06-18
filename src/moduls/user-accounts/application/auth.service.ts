@@ -91,14 +91,28 @@ export class AuthService {
     const accessToken = this.generateAccessToken(user.id, user.login);
     const refreshToken = this.generateRefreshToken(user.id, deviceId);
 
+    // Декодируем токен, чтобы вытащить `iat`
+    const payload = this.jwtService.decode(refreshToken) as any;
+    const lastActiveDate = new Date(payload.iat * 1000);
+
+    // Сохраняем сессию
+    await this.sessionService.createSession({
+      userId: user.id,
+      deviceId,
+      ip,
+      title: userAgent,
+      lastActiveDate,
+    });
+
     response.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: true,
-      maxAge: 20 * 1000,
+      maxAge: 20 * 1000, // 20 секунд — ты скорее всего потом увеличишь
     });
 
     return { accessToken };
   }
+
   async confirmRegistration(code: string): Promise<void> {
     const user = await this.usersRepository.findByConfirmationCode(code);
 

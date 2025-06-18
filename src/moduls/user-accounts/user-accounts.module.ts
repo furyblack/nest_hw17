@@ -10,6 +10,7 @@ import { EmailService } from '../notifications/email.service';
 import { AuthQueryRepository } from './infrastructure/query/auth.query-repository';
 import { JwtStrategy } from './guards/bearer/jwt.strategy';
 import { SessionService } from './application/session.service';
+import { SecurityDevicesController } from './api/security-devices.controller';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { SessionService } from './application/session.service';
       signOptions: { expiresIn: '20s' }, // Базовые настройки
     }),
   ],
-  controllers: [UsersSaController, AuthController],
+  controllers: [UsersSaController, AuthController, SecurityDevicesController],
   providers: [
     UsersRepository,
     UsersService,
