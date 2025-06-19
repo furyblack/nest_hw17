@@ -4,6 +4,7 @@ import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import * as bcrypt from 'bcrypt';
+import cookieParser from 'cookie-parser';
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
@@ -15,6 +16,10 @@ describe('AuthController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+
+    // 👇 Вот это надо ДО app.init()
+    app.use(cookieParser());
+
     await app.init();
 
     dataSource = moduleFixture.get(DataSource);
@@ -27,7 +32,7 @@ describe('AuthController (e2e)', () => {
 
     await dataSource.query(
       `INSERT INTO users (id, login, email, password_hash, is_email_confirmed, deletion_status)
-     VALUES ($1, $2, $3, $4, true, 'active')`,
+       VALUES ($1, $2, $3, $4, true, 'active')`,
       [userId, 'admin', 'admin@example.com', passwordHash],
     );
   });
