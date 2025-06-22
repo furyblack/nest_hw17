@@ -196,7 +196,7 @@ describe('AuthController (e2e)', () => {
 
     expect(protectedResponse.body.login).toBe('admin');
   });
-
+  //пока не работает
   // it('Should create two separate sessions for different devices', async () => {
   //   const loginDto = {
   //     loginOrEmail: 'admin',
